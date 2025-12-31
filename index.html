@@ -1592,17 +1592,28 @@
             position: relative;
             background: var(--bg-darker);
             overflow: hidden;
+            z-index: 1;
         }
 
         #map {
             width: 100%;
             height: 100%;
+            z-index: 1;
         }
 
         /* Leaflet 樣式覆寫 */
         .leaflet-container {
             background: var(--bg-darker);
             font-family: var(--font-sans);
+            z-index: 1 !important;
+        }
+        
+        .leaflet-pane {
+            z-index: 1 !important;
+        }
+        
+        .leaflet-top, .leaflet-bottom {
+            z-index: 100 !important;
         }
 
         .leaflet-control-zoom {
@@ -3471,11 +3482,11 @@
                 position: fixed;
                 left: 0;
                 top: var(--header-height);
-                bottom: 0;
+                bottom: 65px;
                 width: 100%;
                 max-width: 100%;
                 transform: translateX(-100%);
-                z-index: var(--z-sidebar);
+                z-index: 9998;
             }
             
             .sidebar.open {
@@ -3485,14 +3496,16 @@
             .sidebar-overlay.active {
                 opacity: 1;
                 visibility: visible;
+                z-index: 9997;
             }
             
             .map-container {
                 width: 100%;
+                height: calc(100% - 65px);
             }
             
             .map-style-btns {
-                bottom: 70px;
+                bottom: 80px;
             }
             
             .quick-toolbar {
@@ -3502,6 +3515,11 @@
             /* 底部導航 */
             .mobile-nav {
                 display: flex !important;
+            }
+            
+            /* 確保 header 在最上層 */
+            .header {
+                z-index: 9999;
             }
         }
         
@@ -3513,14 +3531,14 @@
             right: 0;
             bottom: 0;
             height: var(--bottom-nav-height);
-            background: rgba(17, 24, 39, 0.95);
+            background: rgba(17, 24, 39, 0.98);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-top: 1px solid var(--border);
             justify-content: space-around;
             align-items: center;
             padding-bottom: env(safe-area-inset-bottom, 0);
-            z-index: var(--z-fixed);
+            z-index: 9999;
         }
         
         .mobile-nav-item {
@@ -4085,13 +4103,40 @@
                     <div class="tab-panel" id="tab-settings">
                         <div class="sidebar-section">
                             <div class="settings-group">
-                                <div class="settings-group-title">☁️ Google 帳號</div>
+                                <div class="settings-group-title">☁️ Google API 設定</div>
                                 
                                 <div class="google-account-section" id="googleAccountSection">
-                                    <div class="google-account-disconnected" id="googleDisconnected">
-                                        <p style="color: var(--text-secondary); font-size: 0.8125rem; margin-bottom: 0.75rem;">
-                                            連結 Google 帳號以同步到 Google 相簿和 Google 文件
+                                    <!-- API Key 輸入區 -->
+                                    <div class="api-key-section" id="apiKeySection">
+                                        <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.75rem; line-height: 1.4;">
+                                            請先到 <a href="https://console.cloud.google.com/" target="_blank" style="color: var(--info);">Google Cloud Console</a> 建立專案並取得憑證
                                         </p>
+                                        
+                                        <div class="form-group" style="margin-bottom: 0.75rem;">
+                                            <label class="form-label" style="font-size: 0.75rem;">Client ID</label>
+                                            <input type="text" class="form-input" id="googleClientId" 
+                                                   placeholder="xxxx.apps.googleusercontent.com"
+                                                   style="font-size: 0.75rem;">
+                                        </div>
+                                        
+                                        <div class="form-group" style="margin-bottom: 0.75rem;">
+                                            <label class="form-label" style="font-size: 0.75rem;">API Key</label>
+                                            <input type="text" class="form-input" id="googleApiKey" 
+                                                   placeholder="AIzaSy..."
+                                                   style="font-size: 0.75rem;">
+                                        </div>
+                                        
+                                        <button class="btn btn-primary" style="width: 100%; margin-bottom: 0.75rem;" onclick="saveGoogleApiKeys()">
+                                            💾 儲存 API 設定
+                                        </button>
+                                        
+                                        <div id="apiKeyStatus" style="font-size: 0.6875rem; color: var(--text-muted); text-align: center;"></div>
+                                    </div>
+                                    
+                                    <hr style="border: none; border-top: 1px solid var(--border); margin: 1rem 0;">
+                                    
+                                    <!-- 登入區 -->
+                                    <div class="google-account-disconnected" id="googleDisconnected">
                                         <button class="btn btn-google" onclick="googleSignIn()">
                                             <svg viewBox="0 0 24 24" width="18" height="18" style="margin-right: 8px;">
                                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -4113,7 +4158,7 @@
                                         </div>
                                         <div class="google-actions">
                                             <button class="btn btn-sm" onclick="uploadToGooglePhotos()">
-                                                📷 上傳到相簿
+                                                📷 上傳相簿
                                             </button>
                                             <button class="btn btn-sm" onclick="createGoogleDoc()">
                                                 📄 建立文件
@@ -11302,9 +11347,9 @@ ${topCountries.map(c => {
         // Google API 整合
         // ============================================
         
-        // Google API 配置 - 使用者需要自行填入
-        const GOOGLE_CLIENT_ID = ''; // 在 Google Cloud Console 取得
-        const GOOGLE_API_KEY = ''; // 在 Google Cloud Console 取得
+        // Google API 配置 - 從 localStorage 讀取
+        let GOOGLE_CLIENT_ID = localStorage.getItem('googleClientId') || '';
+        let GOOGLE_API_KEY = localStorage.getItem('googleApiKey') || '';
         const GOOGLE_SCOPES = [
             'https://www.googleapis.com/auth/photoslibrary',
             'https://www.googleapis.com/auth/photoslibrary.appendonly',
@@ -11318,42 +11363,85 @@ ${topCountries.map(c => {
         let googleAccessToken = null;
         let googleUser = null;
         
+        // 儲存 Google API Keys
+        function saveGoogleApiKeys() {
+            const clientId = document.getElementById('googleClientId')?.value?.trim();
+            const apiKey = document.getElementById('googleApiKey')?.value?.trim();
+            
+            if (!clientId) {
+                showToast('請輸入 Client ID', '', 'warning');
+                return;
+            }
+            
+            GOOGLE_CLIENT_ID = clientId;
+            GOOGLE_API_KEY = apiKey;
+            
+            localStorage.setItem('googleClientId', clientId);
+            localStorage.setItem('googleApiKey', apiKey);
+            
+            const status = document.getElementById('apiKeyStatus');
+            if (status) {
+                status.innerHTML = '<span style="color: var(--success);">✅ API 設定已儲存</span>';
+            }
+            
+            showToast('API 設定已儲存', '請重新整理頁面以套用', 'success');
+            
+            // 重新初始化 Google API
+            setTimeout(() => {
+                initGoogleAPI();
+            }, 500);
+        }
+        
+        // 載入已儲存的 API Keys 到輸入欄
+        function loadGoogleApiKeys() {
+            const clientIdInput = document.getElementById('googleClientId');
+            const apiKeyInput = document.getElementById('googleApiKey');
+            const status = document.getElementById('apiKeyStatus');
+            
+            if (clientIdInput && GOOGLE_CLIENT_ID) {
+                clientIdInput.value = GOOGLE_CLIENT_ID;
+            }
+            if (apiKeyInput && GOOGLE_API_KEY) {
+                apiKeyInput.value = GOOGLE_API_KEY;
+            }
+            if (status && GOOGLE_CLIENT_ID) {
+                status.innerHTML = '<span style="color: var(--success);">✅ API 已設定</span>';
+            }
+        }
+        
         // 初始化 Google API
         function initGoogleAPI() {
+            // 載入已儲存的 API Keys
+            loadGoogleApiKeys();
+            
             // 檢查是否有 Client ID
             if (!GOOGLE_CLIENT_ID) {
-                console.log('⚠️ 未設定 Google Client ID，Google 功能已停用');
-                const section = document.getElementById('googleAccountSection');
-                if (section) {
-                    section.innerHTML = `
-                        <div style="background: var(--warning-dim); border: 1px solid var(--warning); border-radius: var(--radius-md); padding: 0.75rem; font-size: 0.75rem;">
-                            <strong>⚠️ 需要設定 Google API</strong><br>
-                            請在程式碼中填入 GOOGLE_CLIENT_ID 和 GOOGLE_API_KEY<br>
-                            <a href="https://console.cloud.google.com/" target="_blank" style="color: var(--info);">前往 Google Cloud Console</a>
-                        </div>
-                    `;
-                }
+                console.log('⚠️ 未設定 Google Client ID，請在設定中輸入');
                 return;
             }
             
             // 等待 Google Identity Services 載入
             if (typeof google !== 'undefined' && google.accounts) {
-                googleTokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: GOOGLE_CLIENT_ID,
-                    scope: GOOGLE_SCOPES,
-                    callback: handleGoogleTokenResponse
-                });
-                
-                // 檢查是否有儲存的登入狀態
-                const savedToken = localStorage.getItem('googleAccessToken');
-                const savedUser = localStorage.getItem('googleUser');
-                if (savedToken && savedUser) {
-                    googleAccessToken = savedToken;
-                    googleUser = JSON.parse(savedUser);
-                    updateGoogleUI(true);
+                try {
+                    googleTokenClient = google.accounts.oauth2.initTokenClient({
+                        client_id: GOOGLE_CLIENT_ID,
+                        scope: GOOGLE_SCOPES,
+                        callback: handleGoogleTokenResponse
+                    });
+                    
+                    // 檢查是否有儲存的登入狀態
+                    const savedToken = localStorage.getItem('googleAccessToken');
+                    const savedUser = localStorage.getItem('googleUser');
+                    if (savedToken && savedUser) {
+                        googleAccessToken = savedToken;
+                        googleUser = JSON.parse(savedUser);
+                        updateGoogleUI(true);
+                    }
+                    
+                    console.log('✅ Google API 已初始化');
+                } catch (e) {
+                    console.error('Google API 初始化失敗:', e);
                 }
-                
-                console.log('✅ Google API 已初始化');
             } else {
                 setTimeout(initGoogleAPI, 500);
             }
@@ -11362,7 +11450,7 @@ ${topCountries.map(c => {
         // Google 登入
         function googleSignIn() {
             if (!GOOGLE_CLIENT_ID) {
-                showToast('未設定 Google API', '請先設定 Client ID', 'warning');
+                showToast('請先設定 API', '在設定中輸入 Client ID', 'warning');
                 return;
             }
             
