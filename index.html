@@ -4513,9 +4513,21 @@
                 </div>
                 
                 <div id="manualMethodMap" class="hidden">
-                    <div style="height: 180px; background: var(--bg-input); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.875rem;">
-                        點擊地圖選擇位置（功能開發中）
+                    <div id="pickerMapContainer" style="height: 200px; border-radius: var(--radius-md); overflow: hidden; position: relative;">
+                        <div id="pickerMap" style="width: 100%; height: 100%;"></div>
+                        <div id="pickerCrosshair" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 1000;">
+                            <div style="font-size: 24px; text-shadow: 0 0 3px white;">📍</div>
+                        </div>
                     </div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <input type="text" class="form-input" id="pickerSearchInput" placeholder="搜尋地點..." style="flex: 1; font-size: 0.75rem;">
+                        <button class="btn btn-sm" onclick="searchPickerLocation()">🔍</button>
+                        <button class="btn btn-sm" onclick="useCurrentLocation()">📍 定位</button>
+                    </div>
+                    <div style="font-size: 0.6875rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
+                        拖曳地圖或搜尋地點，中心點即為選擇位置
+                    </div>
+                    <div id="pickerCoords" style="font-size: 0.75rem; color: var(--primary); margin-top: 0.25rem; text-align: center;"></div>
                 </div>
                 
                 <hr style="border: none; border-top: 1px solid var(--border); margin: 1.25rem 0;">
@@ -5036,6 +5048,10 @@
             openModal('importExportModal');
         }
         
+        // 地圖選點相關變數
+        let pickerMap = null;
+        let pickerCenter = { lat: 25.0330, lng: 121.5654 }; // 預設台北
+        
         function switchManualMethod(method) {
             // 更新標籤
             document.querySelectorAll('.manual-add-tab').forEach(tab => {
@@ -5046,6 +5062,140 @@
             document.getElementById('manualMethodSearch').classList.toggle('hidden', method !== 'search');
             document.getElementById('manualMethodCoords').classList.toggle('hidden', method !== 'coords');
             document.getElementById('manualMethodMap').classList.toggle('hidden', method !== 'map');
+            
+            // 初始化地圖選點
+            if (method === 'map') {
+                setTimeout(() => initPickerMap(), 100);
+            }
+        }
+        
+        // 初始化地圖選點
+        function initPickerMap() {
+            const container = document.getElementById('pickerMap');
+            if (!container) return;
+            
+            // 如果已經初始化過，只需要 invalidateSize
+            if (pickerMap) {
+                pickerMap.invalidateSize();
+                return;
+            }
+            
+            // 嘗試使用當前位置或照片位置
+            if (photosWithGPS.length > 0) {
+                const lastPhoto = photosWithGPS[photosWithGPS.length - 1];
+                pickerCenter = { lat: lastPhoto.lat, lng: lastPhoto.lng };
+            }
+            
+            // 建立地圖
+            pickerMap = L.map('pickerMap', {
+                center: [pickerCenter.lat, pickerCenter.lng],
+                zoom: 15,
+                zoomControl: false
+            });
+            
+            // 添加圖層
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(pickerMap);
+            
+            // 添加縮放控制
+            L.control.zoom({ position: 'bottomright' }).addTo(pickerMap);
+            
+            // 監聽地圖移動
+            pickerMap.on('moveend', updatePickerCoords);
+            pickerMap.on('move', updatePickerCoords);
+            
+            // 初始更新座標
+            updatePickerCoords();
+        }
+        
+        // 更新選點座標顯示
+        function updatePickerCoords() {
+            if (!pickerMap) return;
+            const center = pickerMap.getCenter();
+            pickerCenter = { lat: center.lat, lng: center.lng };
+            
+            const coordsDiv = document.getElementById('pickerCoords');
+            if (coordsDiv) {
+                coordsDiv.textContent = `📍 ${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`;
+            }
+            
+            // 同步到座標輸入框
+            const latInput = document.getElementById('manualLat');
+            const lngInput = document.getElementById('manualLng');
+            if (latInput) latInput.value = center.lat.toFixed(6);
+            if (lngInput) lngInput.value = center.lng.toFixed(6);
+        }
+        
+        // 搜尋地點（地圖選點用）
+        async function searchPickerLocation() {
+            const input = document.getElementById('pickerSearchInput');
+            const query = input?.value?.trim();
+            
+            if (!query) {
+                showToast('請輸入地點', '', 'warning');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+                const data = await res.json();
+                
+                if (data.length > 0) {
+                    const result = data[0];
+                    const lat = parseFloat(result.lat);
+                    const lng = parseFloat(result.lon);
+                    
+                    if (pickerMap) {
+                        pickerMap.setView([lat, lng], 16);
+                    }
+                    
+                    // 自動填入地點名稱
+                    const nameInput = document.getElementById('manualName');
+                    if (nameInput && !nameInput.value) {
+                        nameInput.value = result.display_name.split(',')[0];
+                    }
+                    
+                    showToast('已定位', result.display_name.split(',')[0], 'success');
+                } else {
+                    showToast('找不到地點', '請嘗試其他關鍵字', 'warning');
+                }
+            } catch (e) {
+                showToast('搜尋失敗', e.message, 'error');
+            }
+        }
+        
+        // 使用當前位置
+        function useCurrentLocation() {
+            if (!navigator.geolocation) {
+                showToast('不支援定位', '瀏覽器不支援地理定位', 'error');
+                return;
+            }
+            
+            showToast('定位中...', '', 'info');
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    if (pickerMap) {
+                        pickerMap.setView([lat, lng], 16);
+                    }
+                    
+                    showToast('定位成功', `${lat.toFixed(4)}, ${lng.toFixed(4)}`, 'success');
+                },
+                (error) => {
+                    let msg = '定位失敗';
+                    switch (error.code) {
+                        case 1: msg = '請允許位置存取權限'; break;
+                        case 2: msg = '無法取得位置'; break;
+                        case 3: msg = '定位逾時'; break;
+                    }
+                    showToast('定位失敗', msg, 'error');
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
         }
         
         // ============================================
