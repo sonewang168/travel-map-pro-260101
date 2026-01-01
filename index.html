@@ -11884,19 +11884,37 @@ ${topCountries.map(c => {
             const hasImgbb = !!IMGBB_API_KEY;
             const photoCount = Math.min(photos.length, 20); // 最多插入 20 張圖
             
+            // 讀取之前儲存的文字
+            const savedMemo = localStorage.getItem('travelMemo') || '';
+            
             // 顯示確認對話框
             const modalHtml = `
                 <div class="modal-backdrop active" id="createDocModal" onclick="if(event.target===this)closeModal('createDocModal')">
-                    <div class="modal" style="width: 400px;">
+                    <div class="modal" style="width: 420px; max-height: 90vh;">
                         <div class="modal-header">
                             <div class="modal-title">📄 建立 Google 文件</div>
                             <button class="modal-close" onclick="closeModal('createDocModal')">×</button>
                         </div>
-                        <div class="modal-body">
+                        <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
                             <div class="form-group">
                                 <label class="form-label">文件標題</label>
                                 <input type="text" class="form-input" id="googleDocTitle" 
                                        value="旅行足跡記錄 - ${new Date().toLocaleDateString('zh-TW')}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span>✍️ 生活點滴</span>
+                                    <button type="button" class="btn btn-sm" onclick="clearTravelMemo()" style="font-size: 0.6875rem; padding: 0.25rem 0.5rem;">
+                                        🗑️ 清除
+                                    </button>
+                                </label>
+                                <textarea class="form-input" id="travelMemo" rows="4" 
+                                          placeholder="記錄這趟旅程的心情、回憶、特別的事..."
+                                          style="resize: vertical; min-height: 80px;">${savedMemo}</textarea>
+                                <div style="font-size: 0.625rem; color: var(--text-muted); margin-top: 0.25rem; text-align: right;">
+                                    <span id="memoCharCount">${savedMemo.length}</span> 字
+                                </div>
                             </div>
                             
                             ${hasImgbb ? `
@@ -11929,6 +11947,7 @@ ${topCountries.map(c => {
                             <div style="font-size: 0.75rem; color: var(--text-secondary);">
                                 文件將包含：
                                 <ul style="margin: 0.5rem 0 0 1.25rem;">
+                                    <li>✍️ 生活點滴文字</li>
                                     <li>🌍 旅行統計數據</li>
                                     <li>🏳️ 造訪國家/城市列表</li>
                                     ${hasImgbb ? '<li>📷 精選照片（含地點說明）</li>' : ''}
@@ -11946,6 +11965,28 @@ ${topCountries.map(c => {
             const existing = document.getElementById('createDocModal');
             if (existing) existing.remove();
             document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // 綁定字數計算
+            const memoInput = document.getElementById('travelMemo');
+            if (memoInput) {
+                memoInput.addEventListener('input', () => {
+                    const count = memoInput.value.length;
+                    document.getElementById('memoCharCount').textContent = count;
+                    // 自動儲存
+                    localStorage.setItem('travelMemo', memoInput.value);
+                });
+            }
+        }
+        
+        // 清除生活點滴文字
+        function clearTravelMemo() {
+            const memoInput = document.getElementById('travelMemo');
+            if (memoInput) {
+                memoInput.value = '';
+                document.getElementById('memoCharCount').textContent = '0';
+                localStorage.removeItem('travelMemo');
+                showToast('已清除', '', 'success');
+            }
         }
         
         // 上傳圖片到 ImgBB
@@ -11979,6 +12020,12 @@ ${topCountries.map(c => {
             const docTitle = document.getElementById('googleDocTitle')?.value || '旅行足跡記錄';
             const photoCountSelect = document.getElementById('docPhotoCount');
             const maxPhotos = photoCountSelect ? parseInt(photoCountSelect.value) : 0;
+            const travelMemo = document.getElementById('travelMemo')?.value?.trim() || '';
+            
+            // 儲存生活點滴
+            if (travelMemo) {
+                localStorage.setItem('travelMemo', travelMemo);
+            }
             
             closeModal('createDocModal');
             showLoading('建立文件中...');
@@ -12072,6 +12119,18 @@ ${topCountries.map(c => {
                         }
                     });
                     index += dateText.length;
+                }
+                
+                // 生活點滴
+                if (travelMemo) {
+                    const memoText = `✍️ 生活點滴\n${travelMemo}\n\n`;
+                    requests.push({
+                        insertText: {
+                            location: { index },
+                            text: memoText
+                        }
+                    });
+                    index += memoText.length;
                 }
                 
                 // 統計
