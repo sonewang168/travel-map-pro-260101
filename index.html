@@ -4130,21 +4130,6 @@
                                         
                                         <div class="form-group" style="margin-bottom: 0.75rem;">
                                             <label class="form-label" style="font-size: 0.75rem;">
-                                                📷 Google 相簿 ID
-                                                <a href="javascript:void(0)" onclick="showAlbumIdHelp()" style="color: var(--info); margin-left: 4px;">❓</a>
-                                            </label>
-                                            <input type="text" class="form-input" id="googleAlbumId" 
-                                                   placeholder="留空自動建立新相簿"
-                                                   style="font-size: 0.75rem;">
-                                            <div style="font-size: 0.625rem; color: var(--text-muted); margin-top: 0.25rem;">
-                                                從相簿網址取得：photos.google.com/album/<strong>這段ID</strong>
-                                            </div>
-                                        </div>
-                                        
-                                        <hr style="border: none; border-top: 1px dashed var(--border); margin: 0.75rem 0;">
-                                        
-                                        <div class="form-group" style="margin-bottom: 0.75rem;">
-                                            <label class="form-label" style="font-size: 0.75rem;">
                                                 🖼️ ImgBB API Key
                                                 <a href="javascript:void(0)" onclick="showImgbbHelp()" style="color: var(--info); margin-left: 4px;">❓</a>
                                             </label>
@@ -4192,9 +4177,6 @@
                                             </button>
                                             <button class="btn btn-sm" onclick="createGoogleDoc()">
                                                 📄 建立文件
-                                            </button>
-                                            <button class="btn btn-sm" onclick="listGoogleAlbums()">
-                                                📋 查看相簿
                                             </button>
                                             <button class="btn btn-sm btn-danger" onclick="googleSignOut()">
                                                 登出
@@ -11396,9 +11378,6 @@ ${topCountries.map(c => {
         let googleAccessToken = null;
         let googleUser = null;
         
-        // Google 目標位置
-        let GOOGLE_ALBUM_ID = localStorage.getItem('googleAlbumId') || '';
-        
         // ImgBB API Key（用於 Google Doc 插入圖片）
         let IMGBB_API_KEY = localStorage.getItem('imgbbApiKey') || '';
         
@@ -11406,7 +11385,6 @@ ${topCountries.map(c => {
         function saveGoogleApiKeys() {
             const clientId = document.getElementById('googleClientId')?.value?.trim();
             const apiKey = document.getElementById('googleApiKey')?.value?.trim();
-            const albumId = document.getElementById('googleAlbumId')?.value?.trim();
             const imgbbKey = document.getElementById('imgbbApiKey')?.value?.trim();
             
             if (!clientId) {
@@ -11416,18 +11394,15 @@ ${topCountries.map(c => {
             
             GOOGLE_CLIENT_ID = clientId;
             GOOGLE_API_KEY = apiKey;
-            GOOGLE_ALBUM_ID = albumId;
             IMGBB_API_KEY = imgbbKey;
             
             localStorage.setItem('googleClientId', clientId);
             localStorage.setItem('googleApiKey', apiKey);
-            localStorage.setItem('googleAlbumId', albumId);
             localStorage.setItem('imgbbApiKey', imgbbKey);
             
             const status = document.getElementById('apiKeyStatus');
             if (status) {
                 let statusText = '✅ API 已儲存';
-                if (albumId) statusText += ' | 相簿 ✓';
                 if (imgbbKey) statusText += ' | ImgBB ✓';
                 status.innerHTML = `<span style="color: var(--success);">${statusText}</span>`;
             }
@@ -11444,7 +11419,6 @@ ${topCountries.map(c => {
         function loadGoogleApiKeys() {
             const clientIdInput = document.getElementById('googleClientId');
             const apiKeyInput = document.getElementById('googleApiKey');
-            const albumIdInput = document.getElementById('googleAlbumId');
             const imgbbInput = document.getElementById('imgbbApiKey');
             const status = document.getElementById('apiKeyStatus');
             
@@ -11454,15 +11428,11 @@ ${topCountries.map(c => {
             if (apiKeyInput && GOOGLE_API_KEY) {
                 apiKeyInput.value = GOOGLE_API_KEY;
             }
-            if (albumIdInput && GOOGLE_ALBUM_ID) {
-                albumIdInput.value = GOOGLE_ALBUM_ID;
-            }
             if (imgbbInput && IMGBB_API_KEY) {
                 imgbbInput.value = IMGBB_API_KEY;
             }
             if (status && GOOGLE_CLIENT_ID) {
                 let statusText = '✅ API 已設定';
-                if (GOOGLE_ALBUM_ID) statusText += ' | 相簿 ✓';
                 if (IMGBB_API_KEY) statusText += ' | ImgBB ✓';
                 status.innerHTML = `<span style="color: var(--success);">${statusText}</span>`;
             }
@@ -11500,115 +11470,6 @@ ${topCountries.map(c => {
                 </div>
             `;
             document.body.insertAdjacentHTML('beforeend', html);
-        }
-        
-        // 顯示相簿 ID 說明
-        function showAlbumIdHelp() {
-            const html = `
-                <div class="modal-backdrop active" id="albumHelpModal" onclick="if(event.target===this)closeModal('albumHelpModal')">
-                    <div class="modal" style="width: 360px;">
-                        <div class="modal-header">
-                            <div class="modal-title">📷 如何取得相簿 ID</div>
-                            <button class="modal-close" onclick="closeModal('albumHelpModal')">×</button>
-                        </div>
-                        <div class="modal-body" style="font-size: 0.8125rem;">
-                            <ol style="padding-left: 1.25rem; line-height: 1.6;">
-                                <li>開啟 <a href="https://photos.google.com" target="_blank" style="color: var(--info);">Google 相簿</a></li>
-                                <li>點擊左側「相簿」</li>
-                                <li>開啟你要上傳的相簿</li>
-                                <li>查看網址列：<br>
-                                    <code style="background: var(--bg-input); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.6875rem; word-break: break-all;">
-                                    photos.google.com/album/<strong style="color: var(--primary);">AF1Qip...</strong>
-                                    </code>
-                                </li>
-                                <li>複製 <strong>/album/</strong> 後面的那串文字</li>
-                            </ol>
-                            <div style="background: var(--info-dim); padding: 0.75rem; border-radius: 8px; margin-top: 1rem;">
-                                <strong>💡 提示：</strong>留空會自動建立「旅行足跡」新相簿
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button class="btn btn-primary" onclick="closeModal('albumHelpModal')">了解</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', html);
-        }
-        
-        // 列出 Google 相簿
-        async function listGoogleAlbums() {
-            if (!googleAccessToken) {
-                showToast('請先登入 Google', '', 'warning');
-                return;
-            }
-            
-            showLoading('載入相簿列表...');
-            
-            try {
-                const res = await fetch('https://photoslibrary.googleapis.com/v1/albums?pageSize=50', {
-                    headers: { 'Authorization': `Bearer ${googleAccessToken}` }
-                });
-                
-                if (!res.ok) throw new Error('無法取得相簿列表');
-                
-                const data = await res.json();
-                const albums = data.albums || [];
-                
-                hideLoading();
-                
-                const html = `
-                    <div class="modal-backdrop active" id="albumListModal" onclick="if(event.target===this)closeModal('albumListModal')">
-                        <div class="modal" style="width: 400px; max-height: 80vh;">
-                            <div class="modal-header">
-                                <div class="modal-title">📷 我的 Google 相簿</div>
-                                <button class="modal-close" onclick="closeModal('albumListModal')">×</button>
-                            </div>
-                            <div class="modal-body" style="max-height: 50vh; overflow-y: auto;">
-                                ${albums.length === 0 ? '<p style="text-align: center; color: var(--text-muted);">沒有找到相簿</p>' : ''}
-                                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                                    ${albums.map(album => `
-                                        <div class="album-list-item" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg-card); border-radius: 8px; cursor: pointer;" onclick="selectAlbum('${album.id}', '${album.title.replace(/'/g, "\\'")}')">
-                                            <div style="width: 50px; height: 50px; background: var(--bg-input); border-radius: 6px; overflow: hidden;">
-                                                ${album.coverPhotoBaseUrl ? `<img src="${album.coverPhotoBaseUrl}=w50-h50-c" style="width: 100%; height: 100%; object-fit: cover;">` : '📷'}
-                                            </div>
-                                            <div style="flex: 1; min-width: 0;">
-                                                <div style="font-size: 0.875rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${album.title}</div>
-                                                <div style="font-size: 0.6875rem; color: var(--text-muted);">${album.mediaItemsCount || 0} 張照片</div>
-                                            </div>
-                                            <div style="font-size: 0.5rem; color: var(--text-muted); max-width: 80px; word-break: break-all;">${album.id.substring(0, 15)}...</div>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button class="btn" onclick="closeModal('albumListModal')">關閉</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                const existing = document.getElementById('albumListModal');
-                if (existing) existing.remove();
-                document.body.insertAdjacentHTML('beforeend', html);
-                
-            } catch (e) {
-                hideLoading();
-                showToast('載入失敗', e.message, 'error');
-            }
-        }
-        
-        // 選擇相簿
-        function selectAlbum(albumId, albumTitle) {
-            const input = document.getElementById('googleAlbumId');
-            if (input) {
-                input.value = albumId;
-            }
-            GOOGLE_ALBUM_ID = albumId;
-            localStorage.setItem('googleAlbumId', albumId);
-            
-            closeModal('albumListModal');
-            showToast('已選擇相簿', albumTitle, 'success');
         }
         
         // 初始化 Google API
@@ -11728,6 +11589,9 @@ ${topCountries.map(c => {
         }
         
         // 上傳到 Google 相簿
+        // 已建立的相簿列表（App 建立的才能繼續上傳）
+        let createdAlbums = JSON.parse(localStorage.getItem('createdAlbums') || '[]');
+        
         async function uploadToGooglePhotos() {
             if (!googleAccessToken) {
                 showToast('請先登入 Google', '', 'warning');
@@ -11737,11 +11601,11 @@ ${topCountries.map(c => {
             const photosToUpload = photos.filter(p => p.fullImage || p.thumbnail);
             
             if (photosToUpload.length === 0) {
-                showToast('沒有照片可上傳', '', 'warning');
+                showToast('沒有照片可上傳', '請先上傳照片到 App', 'warning');
                 return;
             }
             
-            const hasAlbumId = !!GOOGLE_ALBUM_ID;
+            const hasExistingAlbums = createdAlbums.length > 0;
             
             // 顯示上傳選項
             const modalHtml = `
@@ -11754,18 +11618,23 @@ ${topCountries.map(c => {
                         <div class="modal-body">
                             <p style="margin-bottom: 1rem;">將 <strong>${photosToUpload.length}</strong> 張照片上傳到 Google 相簿</p>
                             
-                            ${hasAlbumId ? `
-                                <div style="background: var(--success-dim); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
-                                    <div style="font-size: 0.75rem; color: var(--success);">
-                                        ✅ 將上傳到已設定的相簿
-                                    </div>
-                                    <div style="font-size: 0.625rem; color: var(--text-muted); margin-top: 0.25rem;">
-                                        ID: ${GOOGLE_ALBUM_ID.substring(0, 20)}...
-                                    </div>
+                            ${hasExistingAlbums ? `
+                                <div class="form-group">
+                                    <label class="form-label">選擇相簿</label>
+                                    <select class="form-input" id="selectedAlbumId" onchange="toggleNewAlbumInput()">
+                                        ${createdAlbums.map(a => `<option value="${a.id}">${a.name} (${a.date})</option>`).join('')}
+                                        <option value="__new__">➕ 建立新相簿</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group hidden" id="newAlbumGroup">
+                                    <label class="form-label">新相簿名稱</label>
+                                    <input type="text" class="form-input" id="googleAlbumName" 
+                                           placeholder="輸入相簿名稱" value="旅行足跡 ${new Date().toLocaleDateString('zh-TW')}">
                                 </div>
                             ` : `
                                 <div class="form-group">
-                                    <label class="form-label">新相簿名稱</label>
+                                    <label class="form-label">相簿名稱</label>
                                     <input type="text" class="form-input" id="googleAlbumName" 
                                            placeholder="輸入相簿名稱" value="旅行足跡 ${new Date().toLocaleDateString('zh-TW')}">
                                 </div>
@@ -11777,20 +11646,6 @@ ${topCountries.map(c => {
                                     只上傳選取的照片 ${selectedPhotos.size > 0 ? `(${selectedPhotos.size} 張)` : ''}
                                 </label>
                             </div>
-                            
-                            ${hasAlbumId ? `
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <input type="checkbox" id="createNewAlbum"> 
-                                        建立新相簿（不使用已設定的）
-                                    </label>
-                                </div>
-                                <div id="newAlbumNameGroup" class="form-group hidden">
-                                    <label class="form-label">新相簿名稱</label>
-                                    <input type="text" class="form-input" id="googleAlbumName" 
-                                           placeholder="輸入相簿名稱" value="旅行足跡 ${new Date().toLocaleDateString('zh-TW')}">
-                                </div>
-                            ` : ''}
                         </div>
                         <div class="modal-footer">
                             <button class="btn" onclick="closeModal('uploadGoogleModal')">取消</button>
@@ -11803,21 +11658,18 @@ ${topCountries.map(c => {
             const existing = document.getElementById('uploadGoogleModal');
             if (existing) existing.remove();
             document.body.insertAdjacentHTML('beforeend', modalHtml);
-            
-            // 綁定新相簿選項
-            const createNewCheckbox = document.getElementById('createNewAlbum');
-            if (createNewCheckbox) {
-                createNewCheckbox.addEventListener('change', (e) => {
-                    const group = document.getElementById('newAlbumNameGroup');
-                    if (group) {
-                        group.classList.toggle('hidden', !e.target.checked);
-                    }
-                });
+        }
+        
+        function toggleNewAlbumInput() {
+            const select = document.getElementById('selectedAlbumId');
+            const newGroup = document.getElementById('newAlbumGroup');
+            if (select && newGroup) {
+                newGroup.classList.toggle('hidden', select.value !== '__new__');
             }
         }
         
         async function startGooglePhotosUpload() {
-            const createNew = document.getElementById('createNewAlbum')?.checked;
+            const selectedAlbumId = document.getElementById('selectedAlbumId')?.value;
             const albumName = document.getElementById('googleAlbumName')?.value || '旅行足跡';
             const selectedOnly = document.getElementById('uploadSelectedOnly')?.checked;
             
@@ -11826,37 +11678,16 @@ ${topCountries.map(c => {
                 photosToUpload = photosToUpload.filter(p => selectedPhotos.has(p.id));
             }
             
+            if (photosToUpload.length === 0) {
+                showToast('沒有照片', '請先選擇照片', 'warning');
+                return;
+            }
+            
             closeModal('uploadGoogleModal');
             showLoading('準備上傳...');
             
             try {
-                let albumId = null;
-                
-                // 使用已設定的相簿 ID 或建立新相簿
-                if (GOOGLE_ALBUM_ID && !createNew) {
-                    albumId = GOOGLE_ALBUM_ID;
-                    console.log('使用已設定的相簿:', albumId);
-                } else {
-                    // 建立新相簿
-                    const createAlbumRes = await fetch('https://photoslibrary.googleapis.com/v1/albums', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${googleAccessToken}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            album: { title: albumName }
-                        })
-                    });
-                    
-                    if (createAlbumRes.ok) {
-                        const albumData = await createAlbumRes.json();
-                        albumId = albumData.id;
-                        console.log('建立新相簿:', albumId);
-                    }
-                }
-                
-                // 2. 上傳照片
+                // 1. 上傳所有照片並取得 upload tokens
                 let uploaded = 0;
                 const uploadTokens = [];
                 
@@ -11871,7 +11702,7 @@ ${topCountries.map(c => {
                         bytes[i] = binaryData.charCodeAt(i);
                     }
                     
-                    // 上傳到 Google Photos
+                    // 上傳到 Google Photos 取得 upload token
                     const uploadRes = await fetch('https://photoslibrary.googleapis.com/v1/uploads', {
                         method: 'POST',
                         headers: {
@@ -11892,12 +11723,90 @@ ${topCountries.map(c => {
                             }
                         });
                         uploaded++;
+                    } else {
+                        console.error('上傳失敗:', await uploadRes.text());
                     }
                 }
                 
-                // 3. 將照片加入相簿
-                if (uploadTokens.length > 0 && albumId) {
-                    await fetch(`https://photoslibrary.googleapis.com/v1/albums/${albumId}:batchAddMediaItems`, {
+                if (uploadTokens.length === 0) {
+                    throw new Error('沒有照片上傳成功');
+                }
+                
+                updateLoading('加入相簿...');
+                
+                let albumId = null;
+                let albumTitle = '';
+                let resultMessage = '';
+                let isNewAlbum = false;
+                
+                // 判斷使用現有相簿還是建立新相簿
+                if (selectedAlbumId && selectedAlbumId !== '__new__') {
+                    // 使用現有的 App 建立的相簿
+                    albumId = selectedAlbumId;
+                    const existingAlbum = createdAlbums.find(a => a.id === selectedAlbumId);
+                    albumTitle = existingAlbum?.name || '旅行足跡';
+                    console.log('使用現有相簿:', albumId, albumTitle);
+                } else {
+                    // 建立新相簿
+                    isNewAlbum = true;
+                    albumTitle = albumName;
+                    
+                    const createAlbumRes = await fetch('https://photoslibrary.googleapis.com/v1/albums', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${googleAccessToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            album: { title: albumTitle }
+                        })
+                    });
+                    
+                    if (createAlbumRes.ok) {
+                        const albumData = await createAlbumRes.json();
+                        albumId = albumData.id;
+                        console.log('建立新相簿:', albumId, albumTitle);
+                        
+                        // 儲存到已建立相簿列表
+                        createdAlbums.unshift({
+                            id: albumId,
+                            name: albumTitle,
+                            date: new Date().toLocaleDateString('zh-TW')
+                        });
+                        // 只保留最近 10 個
+                        if (createdAlbums.length > 10) {
+                            createdAlbums = createdAlbums.slice(0, 10);
+                        }
+                        localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+                    }
+                }
+                
+                // 用 batchCreate 建立媒體項目並加入相簿
+                if (albumId) {
+                    const batchRes = await fetch('https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${googleAccessToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            albumId: albumId,
+                            newMediaItems: uploadTokens
+                        })
+                    });
+                    
+                    if (batchRes.ok) {
+                        const batchData = await batchRes.json();
+                        const successCount = batchData.newMediaItemResults?.filter(r => r.status?.message === 'Success' || r.mediaItem).length || uploadTokens.length;
+                        resultMessage = `${successCount} 張照片已上傳到「${albumTitle}」`;
+                    } else {
+                        const errText = await batchRes.text();
+                        console.error('batchCreate 失敗:', errText);
+                        throw new Error('加入相簿失敗');
+                    }
+                } else {
+                    // 沒有相簿，直接上傳到照片庫
+                    const batchRes = await fetch('https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate', {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${googleAccessToken}`,
@@ -11907,22 +11816,39 @@ ${topCountries.map(c => {
                             newMediaItems: uploadTokens
                         })
                     });
-                } else if (uploadTokens.length > 0) {
-                    // 沒有相簿就直接建立媒體項目
-                    await fetch('https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${googleAccessToken}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            newMediaItems: uploadTokens
-                        })
-                    });
+                    
+                    if (batchRes.ok) {
+                        resultMessage = `${uploadTokens.length} 張照片已上傳到 Google 相簿`;
+                    } else {
+                        throw new Error('上傳失敗');
+                    }
                 }
                 
                 hideLoading();
-                showToast('上傳完成', `${uploaded} 張照片已上傳到 Google 相簿`, 'success');
+                
+                // 顯示成功訊息
+                const successHtml = `
+                    <div class="modal-backdrop active" id="uploadSuccessModal" onclick="if(event.target===this)closeModal('uploadSuccessModal')">
+                        <div class="modal" style="width: 400px;">
+                            <div class="modal-header">
+                                <div class="modal-title">✅ 上傳完成</div>
+                                <button class="modal-close" onclick="closeModal('uploadSuccessModal')">×</button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <div style="font-size: 3rem; margin-bottom: 1rem;">📷</div>
+                                <p style="margin-bottom: 1rem;">${resultMessage}</p>
+                                ${isNewAlbum ? `<p style="font-size: 0.75rem; color: var(--text-muted);">下次可繼續上傳到此相簿</p>` : ''}
+                                <a href="https://photos.google.com" target="_blank" class="btn btn-primary" style="display: inline-block;">
+                                    開啟 Google 相簿
+                                </a>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn" onclick="closeModal('uploadSuccessModal')">關閉</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', successHtml);
                 
             } catch (e) {
                 hideLoading();
