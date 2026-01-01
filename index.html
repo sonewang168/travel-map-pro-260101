@@ -4998,8 +4998,20 @@
             document.getElementById(id).classList.add('active');
         }
         
+        // 預定義的 modal IDs
+        const predefinedModals = ['exportModal', 'manualAddModal', 'importExportModal', 'tripEditModal'];
+        
         function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            
+            if (predefinedModals.includes(id)) {
+                // 預定義的 modal 只移除 active class
+                modal.classList.remove('active');
+            } else {
+                // 動態插入的 modal 直接移除元素
+                modal.remove();
+            }
         }
         
         function showExportModal() {
